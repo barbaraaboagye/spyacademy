@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spy Academy: The Linguist Protocol</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Rajdhani', sans-serif; background-color: #050505; color: #00ff41; overflow-x: hidden; }
+    .font-mono { font-family: 'Share Tech Mono', monospace; }
+    
+    /* CRT Scanline Effect */
+    body::before {
+      content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      z-index: 2; background-size: 100% 2px, 3px 100%; pointer-events: none;
+    }
+
+    /* Styles */
+    .glow-text { text-shadow: 0 0 5px #00ff41; }
+    .glow-border { box-shadow: 0 0 10px #00ff41, inset 0 0 5px #00ff41; border: 1px solid #00ff41; }
+    .glow-red { text-shadow: 0 0 5px #ef4444; color: #ef4444; border-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
+    .typing-cursor::after { content: '█'; animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .slide-in { animation: slideIn 0.3s ease-out forwards; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    input { background: transparent; border-bottom: 2px solid #00ff41; color: #00ff41; outline: none; transition: all 0.3s; }
+    input:focus { border-bottom: 2px solid #fff; box-shadow: 0 4px 6px -2px rgba(0, 255, 65, 0.3); }
+    .mission-card { transition: all 0.3s; background: rgba(0, 20, 0, 0.6); }
+    .mission-card:hover { background: rgba(0, 40, 0, 0.8); transform: scale(1.02); }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    
+    /* Paper Effect for Hint */
+    .top-secret-paper {
+        background: #f0f0f0;
+        color: #1a1a1a;
+        font-family: 'Courier New', monospace;
+        transform: rotate(-1deg);
+        box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="p-4 border-b border-green-900 flex justify-between items-center z-10 bg-black/80 backdrop-blur">
+    <div class="flex items-center gap-3">
+      <i class="fa-solid fa-user-secret text-3xl animate-pulse"></i>
+      <div>
+        <h1 class="text-2xl font-bold tracking-widest uppercase">Spy Academy</h1>
+        <div class="text-xs font-mono opacity-70">PROTOCOL v14.0</div>
+      </div>
+    </div>
+    <div class="flex gap-6 text-right font-mono">
+      <div>
+        <div class="text-[10px] uppercase opacity-60">Agent</div>
+        <div class="text-xl font-bold text-white" id="agentNameDisplay">GUEST</div>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase opacity-60">Status</div>
+        <div class="text-xl font-bold" id="rankDisplay">RECRUIT</div>
+      </div>
+      <div>
+        <div class="text-[10px] uppercase opacity-60">Missions</div>
+        <div class="text-xl font-bold"><span id="progressCount">0</span>/200</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Interface -->
+  <main class="flex-1 flex overflow-hidden relative z-10">
+    
+    <!-- Left: Navigation -->
+    <aside class="w-80 border-r border-green-900 bg-black/50 flex flex-col p-4 gap-3 overflow-y-auto scrollbar-hide">
+      <div class="text-xs font-mono mb-1 text-green-700">SELECT MODULE</div>
+      
+      <button onclick="game.loadModule('grammar')" class="mission-card p-3 rounded border border-green-800 text-left group">
+        <div class="flex justify-between items-center">
+          <span class="font-bold group-hover:text-white"><i class="fa-solid fa-brain mr-2"></i> TACTICAL OPS</span>
+          <span class="text-xs bg-green-900 px-2 py-0.5 rounded text-green-100 font-mono" id="progGrammar">0/50</span>
+        </div>
+        <div class="text-[10px] opacity-60 font-mono mt-1">Grammar (Basic to Advanced)</div>
+      </button>
+
+      <button onclick="game.loadModule('vocab')" class="mission-card p-3 rounded border border-green-800 text-left group">
+        <div class="flex justify-between items-center">
+          <span class="font-bold group-hover:text-white"><i class="fa-solid fa-passport mr-2"></i> COVER STORY</span>
+          <span class="text-xs bg-green-900 px-2 py-0.5 rounded text-green-100 font-mono" id="progVocab">0/40</span>
+        </div>
+        <div class="text-[10px] opacity-60 font-mono mt-1">Vocabulary & Context</div>
+      </button>
+
+      <button onclick="game.loadModule('spelling_def')" class="mission-card p-3 rounded border border-green-800 text-left group">
+        <div class="flex justify-between items-center">
+          <span class="font-bold group-hover:text-white"><i class="fa-solid fa-fingerprint mr-2"></i> CRYPTOGRAPHY</span>
+          <span class="text-xs bg-green-900 px-2 py-0.5 rounded text-green-100 font-mono" id="progSpellingDef">0/30</span>
+        </div>
+        <div class="text-[10px] opacity-60 font-mono mt-1">Definitions & Meanings</div>
+      </button>
+
+      <button onclick="game.loadModule('spelling_check')" class="mission-card p-3 rounded border border-green-800 text-left group">
+        <div class="flex justify-between items-center">
+          <span class="font-bold group-hover:text-white"><i class="fa-solid fa-spell-check mr-2"></i> PROTOCOL</span>
+          <span class="text-xs bg-green-900 px-2 py-0.5 rounded text-green-100 font-mono" id="progSpellingCheck">0/40</span>
+        </div>
+        <div class="text-[10px] opacity-60 font-mono mt-1">Spelling Verification</div>
+      </button>
+
+      <button onclick="game.loadModule('dictation')" class="mission-card p-3 rounded border border-green-800 text-left group">
+        <div class="flex justify-between items-center">
+          <span class="font-bold group-hover:text-white"><i class="fa-solid fa-headset mr-2"></i> INTERCEPT</span>
+          <span class="text-xs bg-green-900 px-2 py-0.5 rounded text-green-100 font-mono" id="progDictation">0/40</span>
+        </div>
+        <div class="text-[10px] opacity-60 font-mono mt-1">Audio Transcription</div>
+      </button>
+
+      <div class="mt-auto border-t border-green-900 pt-4">
+        <div class="text-xs opacity-50 font-mono mb-2">SYSTEM LOG</div>
+        <div id="consoleLog" class="h-24 overflow-y-auto text-[10px] font-mono opacity-80 space-y-1 scrollbar-hide">
+          <div>> System Initialized...</div>
+          <div>> Security Protocols Active...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right: Game Area -->
+    <section class="flex-1 p-8 overflow-y-auto bg-black relative flex flex-col items-center justify-center" id="gameArea">
+      
+      <!-- Recruit Screen (First Load) -->
+      <div id="recruitScreen" class="max-w-xl w-full text-center slide-in bg-green-900/10 p-10 border border-green-800 rounded-lg">
+        <i class="fa-solid fa-id-card text-6xl mb-6 opacity-80"></i>
+        <h2 class="text-4xl font-bold mb-2 glow-text">AGENT RECRUITMENT</h2>
+        <p class="text-lg opacity-80 mb-8 font-mono">Enter your codename to begin clearance protocols.</p>
+        
+        <input type="text" id="agentNameInput" class="w-full text-center text-3xl mb-8 uppercase font-mono" placeholder="CODENAME" autocomplete="off">
+        
+        <button onclick="game.registerAgent()" class="w-full px-8 py-4 bg-green-600 hover:bg-green-500 text-black font-bold font-mono text-xl transition-all skew-x-[-10deg]">
+          <span class="skew-x-[10deg] inline-block">INITIALIZE</span>
+        </button>
+      </div>
+
+      <!-- Welcome Screen (After Recruit) -->
+      <div id="welcomeScreen" class="hidden max-w-2xl w-full text-center slide-in">
+        <i class="fa-solid fa-globe text-6xl mb-6 opacity-80 animate-spin-slow"></i>
+        <h2 class="text-4xl font-bold mb-4 glow-text typing-cursor">WELCOME, <span id="welcomeName">AGENT</span>.</h2>
+        <p class="text-lg opacity-80 mb-8 font-mono max-w-lg mx-auto leading-relaxed">
+          Your mission is to prove linguistic mastery. Complete all 200 modules to receive DOUBLE-0 status.
+          <br><br>
+          <span class="text-green-300">Target: 200/200 Missions Complete.</span>
+        </p>
+        <button onclick="game.loadModule('grammar')" class="px-8 py-3 border border-green-500 text-green-500 font-bold font-mono hover:bg-green-500 hover:text-black transition-all">
+          ACCESS TACTICAL OPS
+        </button>
+      </div>
+
+      <!-- Question Container (Hidden by default) -->
+      <div id="missionContainer" class="hidden w-full max-w-3xl">
+        <div class="flex justify-between items-end mb-6 border-b border-green-800 pb-2 w-full">
+          <h2 class="text-3xl font-bold text-white" id="missionTitle">MODULE NAME</h2>
+          <div class="font-mono text-sm opacity-70">Question <span id="qCurrent">1</span> / <span id="qTotal">10</span></div>
+        </div>
+
+        <div class="bg-gray-900/50 p-8 rounded border border-green-900/50 min-h-[350px] flex flex-col justify-center relative w-full">
+          
+          <!-- Feedback Overlay -->
+          <div id="feedbackOverlay" class="hidden absolute inset-0 bg-black/95 z-20 flex flex-col items-center justify-center text-center p-6 backdrop-blur-sm rounded">
+            <div id="feedbackIcon" class="text-6xl mb-4"></div>
+            <div id="feedbackText" class="text-2xl font-bold mb-2"></div>
+            
+            <!-- Note Section (Hidden initially on fail) -->
+            <div id="feedbackNote" class="text-sm opacity-70 font-mono mb-6 max-w-md hidden"></div>
+            
+            <div class="flex gap-4 justify-center">
+              <button id="retryBtn" onclick="game.retryQuestion()" class="hidden px-6 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-black font-mono transition-all">RETRY MISSION</button>
+              <button id="revealBtn" onclick="game.revealAnswer()" class="hidden px-6 py-2 border border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black font-mono transition-all">DECRYPT ANSWER</button>
+              <button id="continueBtn" onclick="game.nextQuestion()" class="hidden px-6 py-2 border border-white text-white hover:bg-white hover:text-black font-mono transition-all">CONTINUE</button>
+            </div>
+          </div>
+
+          <!-- Dictation Hint Overlay (Top Secret Paper) -->
+          <div id="dictationHintOverlay" class="hidden absolute inset-0 bg-black/80 z-30 flex items-center justify-center p-8 backdrop-blur">
+            <div class="top-secret-paper p-8 max-w-lg w-full text-center relative">
+              <div class="absolute top-4 left-4 border-2 border-red-800 text-red-800 px-2 font-bold text-xs transform -rotate-12 opacity-50">TOP SECRET</div>
+              <h3 class="text-xl font-bold mb-4 underline">INTEL RECEIVED</h3>
+              <p class="text-lg font-bold mb-8 select-none" id="hintText">Sample Text</p>
+              <button onclick="game.closeHint()" class="px-6 py-2 bg-black text-white font-mono hover:bg-gray-800">ACKNOWLEDGE & HIDE</button>
+              <div class="text-[10px] mt-4 opacity-60">WARNING: MEMORIZE BEFORE CLOSING.</div>
+            </div>
+          </div>
+
+          <!-- Question Content -->
+          <div id="questionContent" class="z-10 w-full">
+            <!-- Dynamic Injection -->
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Win Modal -->
+  <div id="winModal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
+    <div class="text-center slide-in max-w-2xl border-2 border-green-500 p-10 glow-border bg-black">
+      <i class="fa-solid fa-medal text-6xl mb-6 text-yellow-400"></i>
+      <h2 class="text-5xl font-bold mb-4 glow-text">MISSION ACCOMPLISHED</h2>
+      <p class="text-xl font-mono opacity-80 mb-8">You have completed the Linguist Protocol. <br>Status updated: DOUBLE-0 AGENT.</p>
+      <button onclick="location.reload()" class="px-8 py-3 bg-green-600 text-black font-bold font-mono hover:bg-green-500">RESET SIMULATION</button>
+    </div>
+  </div>
+
+  <script>
+    /* ================= DATA BANK (200 ITEMS) ================= */
+    
+    const db = {
+      grammar: [
+        // --- SIMPLE / EVERYDAY ---
+        { q: "Yesterday, I _____ to the embassy.", opts: ["go", "went", "gone"], ans: "went", note: "Past Simple of 'go'." },
+        { q: "She _____ working on the report right now.", opts: ["is", "are", "be"], ans: "is", note: "Present Continuous." },
+        { q: "We usually _____ our briefing at 0900 hours.", opts: ["have", "having", "has"], ans: "have", note: "Present Simple." },
+        { q: "Look! The target _____ the building.", opts: ["leaves", "is leaving", "left"], ans: "is leaving", note: "Present Continuous." },
+        { q: "_____ you see the signal last night?", opts: ["Do", "Did", "Have"], ans: "Did", note: "Past Simple question." },
+        { q: "I _____ never been to Russia.", opts: ["have", "has", "did"], ans: "have", note: "Present Perfect." },
+        { q: "He _____ arrive tomorrow morning.", opts: ["will", "did", "is"], ans: "will", note: "Future Simple." },
+        { q: "They are _____ to launch the mission soon.", opts: ["go", "going", "will"], ans: "going", note: "Going to Future." },
+        { q: "The keys are _____ the table.", opts: ["in", "on", "at"], ans: "on", note: "Preposition of place." },
+        { q: "I was born _____ 1995.", opts: ["in", "on", "at"], ans: "in", note: "Preposition for years." },
+        { q: "Let's meet _____ 5 PM.", opts: ["in", "on", "at"], ans: "at", note: "Preposition for time." },
+        { q: "This car is _____ than that one.", opts: ["fast", "faster", "fastest"], ans: "faster", note: "Comparative." },
+        { q: "He is the _____ agent in the field.", opts: ["best", "better", "good"], ans: "best", note: "Superlative." },
+        { q: "We don't have _____ time left.", opts: ["some", "any", "many"], ans: "any", note: "Negative sentence." },
+        { q: "Would you like _____ water?", opts: ["some", "any", "a"], ans: "some", note: "Offer." },
+        { q: "She _____ speak three languages.", opts: ["can", "cans", "to can"], ans: "can", note: "Modal." },
+        { q: "You _____ wear a uniform here.", opts: ["must", "can", "might"], ans: "must", note: "Obligation." },
+        { q: "I was _____ when the phone rang.", opts: ["sleep", "sleeping", "slept"], ans: "sleeping", note: "Past Continuous." },
+        { q: "We enjoy _____ old codes.", opts: ["crack", "cracking", "to crack"], ans: "cracking", note: "Enjoy + Gerund." },
+        { q: "He wants _____ the team.", opts: ["join", "joining", "to join"], ans: "to join", note: "Want + Infinitive." },
+        // --- ADVANCED ---
+        { q: "_____ had we arrived when the alarm went off.", opts: ["Scarcely", "Hardly", "No sooner"], ans: "Scarcely", note: "Scarcely/Hardly... when." },
+        { q: "Under no circumstances _____ the door.", opts: ["you should open", "should you open", "open you"], ans: "should you open", note: "Negative inversion." },
+        { q: "Little _____ that he was a double agent.", opts: ["did we know", "we knew", "we did know"], ans: "did we know", note: "Inversion." },
+        { q: "If I _____ you, I would accept the mission.", opts: ["was", "were", "am"], ans: "were", note: "Subjunctive." },
+        { q: "Had I known about the trap, I _____ entered the room.", opts: ["would not have", "would not", "will not have"], ans: "would not have", note: "3rd Conditional." },
+        { q: "_____ you need backup, call this number.", opts: ["Should", "If", "Unless"], ans: "Should", note: "Formal conditional." },
+        { q: "We need to have the safe _____ immediately.", opts: ["cracking", "crack", "cracked"], ans: "cracked", note: "Causative." },
+        { q: "The suspect is believed _____ the country.", opts: ["to leave", "to have left", "leaving"], ans: "to have left", note: "Passive reporting." },
+        { q: "The Director insists that the agent _____ alone.", opts: ["go", "goes", "went"], ans: "go", note: "Subjunctive." },
+        { q: "It is essential that she _____ the files.", opts: ["deletes", "delete", "deleted"], ans: "delete", note: "Subjunctive." },
+        { q: "I look forward to _____ you in the field.", opts: ["meet", "meeting", "met"], ans: "meeting", note: "Look forward to + Gerund." },
+        { q: "He admitted _____ the classified documents.", opts: ["stealing", "to steal", "steal"], ans: "stealing", note: "Admit + Gerund." },
+        { q: "We stopped _____ coffee on the way.", opts: ["to buy", "buying"], ans: "to buy", note: "Infinitive of purpose." },
+        { q: "_____ the equipment was damaged.", opts: ["All", "All of"], ans: "All of", note: "All of + the." },
+        { q: "_____ witness told a different story.", opts: ["Each", "All", "Both"], ans: "Each", note: "Each + singular." },
+        { q: "_____ the agents are compromised.", opts: ["None of", "No one"], ans: "None of", note: "None of + plural." },
+        { q: "The man _____ code name is Falcon is here.", opts: ["who", "whose", "whom"], ans: "whose", note: "Possessive relative." },
+        { q: "The safehouse, _____ we built last year, is compromised.", opts: ["which", "that", "where"], ans: "which", note: "Non-defining relative." },
+        { q: "The lights are on. They _____ be home.", opts: ["must", "can", "should"], ans: "must", note: "Deduction." },
+        { q: "You _____ have told him the secret!", opts: ["shouldn't", "couldn't", "mustn't"], ans: "shouldn't", note: "Past criticism." },
+        { q: "The mission was _____ due to rain.", opts: ["called off", "called out", "called in"], ans: "called off", note: "Phrasal verb." },
+        { q: "We need to _____ the layout of the building.", opts: ["go over", "go under", "go between"], ans: "go over", note: "Phrasal verb." },
+        { q: "I can't _____ up with his behavior.", opts: ["put", "get", "stand"], ans: "put", note: "Phrasal verb." },
+        { q: "He is _____ FBI agent.", opts: ["a", "an", "the"], ans: "an", note: "Vowel sound 'Ef'." },
+        { q: "She went to _____ prison to interrogate the spy.", opts: ["the", "-", "a"], ans: "the", note: "Visiting location." },
+        { q: "By next year, I _____ here for 10 years.", opts: ["will work", "will have been working", "work"], ans: "will have been working", note: "Future Perfect Continuous." },
+        { q: "When I arrived, they _____ the evidence.", opts: ["had already destroyed", "destroyed", "have destroyed"], ans: "had already destroyed", note: "Past Perfect." },
+        { q: "I _____ him since 2010.", opts: ["know", "have known", "knew"], ans: "have known", note: "Present Perfect." },
+        { q: "It's time we _____ home.", opts: ["go", "went", "gone"], ans: "went", note: "Unreal Past." },
+        { q: "I wish I _____ harder for the exam.", opts: ["studied", "had studied", "study"], ans: "had studied", note: "Past regret." }
+      ],
+      vocab: [
+        { q: "To 'blend in' means:", opts: ["To mix drinks", "To go unnoticed", "To fight"], ans: "To go unnoticed" },
+        { q: "A 'Mole' in spy terminology is:", opts: ["An animal", "A double agent / traitor", "A skin mark"], ans: "A double agent / traitor" },
+        { q: "To 'compromise' an operation means:", opts: ["To negotiate", "To expose it to danger", "To complete it"], ans: "To expose it to danger" },
+        { q: "An 'Asset' is:", opts: ["Money", "A person who provides intel", "A building"], ans: "A person who provides intel" },
+        { q: "To 'bug' a room means:", opts: ["To put insects in it", "To place listening devices", "To clean it"], ans: "To place listening devices" },
+        { q: "Cryptic means:", opts: ["Dead", "Mysterious / Obscure", "Clear"], ans: "Mysterious / Obscure" },
+        { q: "To 'debrief' means:", opts: ["To remove pants", "To question after a mission", "To give a brief"], ans: "To question after a mission" },
+        { q: "Clandestine means:", opts: ["Kept secret", "Very loud", "Illegal"], ans: "Kept secret" },
+        { q: "Surveillance means:", opts: ["Close observation", "Serving food", "Surveying land"], ans: "Close observation" },
+        { q: "To 'neutralize' a threat means:", opts: ["To make it pH 7", "To eliminate/stop it", "To ignore it"], ans: "To eliminate/stop it" },
+        { q: "An 'Alias' is:", opts: ["A false name", "A friend", "A map"], ans: "A false name" },
+        { q: "To 'encrypt' data means:", opts: ["To delete it", "To code it for security", "To print it"], ans: "To code it for security" },
+        { q: "A 'safe house' is:", opts: ["A bank", "A secure location for spies", "A house with no stairs"], ans: "A secure location for spies" },
+        { q: "To 'defect' means:", opts: ["To break", "To abandon one's country/cause", "To fix"], ans: "To abandon one's country/cause" },
+        { q: "Intel is short for:", opts: ["Intelligent", "Intelligence (Information)", "Internal"], ans: "Intelligence (Information)" },
+        { q: "A 'dead drop' is:", opts: ["A fall", "A secret location to leave items", "A failed mission"], ans: "A secret location to leave items" },
+        { q: "Espionage is the act of:", opts: ["Eating", "Spying", "Sleeping"], ans: "Spying" },
+        { q: "Counter-intelligence is:", opts: ["Stupid intelligence", "Spying against enemy spies", "Counting numbers"], ans: "Spying against enemy spies" },
+        { q: "A 'handler' is:", opts: ["A driver", "A person who manages an agent", "A door part"], ans: "A person who manages an agent" },
+        { q: "To 'exfiltrate' means:", opts: ["To enter", "To remove/escape secretly", "To filter water"], ans: "To remove/escape secretly" },
+        { q: "Covert means:", opts: ["Open", "Secret/Hidden", "Green"], ans: "Secret/Hidden" },
+        { q: "Overt means:", opts: ["Secret", "Done openly", "Over"], ans: "Done openly" },
+        { q: "To 'blackmail' someone is:", opts: ["To send dark letters", "To threaten for money/favors", "To mail coal"], ans: "To threaten for money/favors" },
+        { q: "A 'decoy' is used to:", opts: ["Distract/Mislead", "Decorate", "Destroy"], ans: "Distract/Mislead" },
+        { q: "To 'intercept' means:", opts: ["To stop/catch something in transit", "To understand", "To start"], ans: "To stop/catch something in transit" },
+        { q: "Classified information is:", opts: ["Sorted", "Secret/Restricted", "Public"], ans: "Secret/Restricted" },
+        { q: "A 'blueprint' is:", opts: ["A blue shirt", "A technical plan/design", "A sad print"], ans: "A technical plan/design" },
+        { q: "To 'shadow' someone means:", opts: ["To block their light", "To follow them secretly", "To be sad"], ans: "To follow them secretly" },
+        { q: "A 'courier' delivers:", opts: ["Curry", "Messages/Packages", "Cars"], ans: "Messages/Packages" },
+        { q: "Asylum means:", opts: ["A hospital", "Protection granted by a state", "A gym"], ans: "Protection granted by a state" },
+        { q: "Treason is:", opts: ["A tree son", "Betraying one's country", "A treat"], ans: "Betraying one's country" },
+        { q: "A 'forgery' is:", opts: ["A fire", "A fake document/copy", "A forgetful person"], ans: "A fake document/copy" },
+        { q: "To 'wiretap' is:", opts: ["To fix wires", "To listen to phone calls secretly", "To dance"], ans: "To listen to phone calls secretly" },
+        { q: "A 'sleeper agent' is:", opts: ["A tired spy", "An inactive spy waiting for orders", "A bed salesman"], ans: "An inactive spy waiting for orders" },
+        { q: "Ciphertext is:", opts: ["Plain text", "Encrypted text", "A phone text"], ans: "Encrypted text" },
+        { q: "A 'dossier' is:", opts: ["A dessert", "A file of detailed information", "A door"], ans: "A file of detailed information" },
+        { q: "Sabotage means:", opts: ["To help", "To deliberately damage/obstruct", "To cook"], ans: "To deliberately damage/obstruct" },
+        { q: "A 'rendezvous' is:", opts: ["A meeting at an agreed time/place", "A french dish", "A surrender"], ans: "A meeting at an agreed time/place" },
+        { q: "Interrogation involves:", opts: ["Asking questions aggressively", "Interpreting languages", "Interrupting"], ans: "Asking questions aggressively" },
+        { q: "Diplomatic immunity means:", opts: ["Not getting sick", "Exemption from certain laws", "Being polite"], ans: "Exemption from certain laws" }
+      ],
+      spelling_def: [
+        { q: "Definition: Monitoring behavior.", opts: ["Surveillance", "Surveyance", "Serveillance"], ans: "Surveillance", note: "Double L." },
+        { q: "Definition: Complex administrative procedure.", opts: ["Bureaucracy", "Beurocracy", "Burreaucracy"], ans: "Bureaucracy", note: "Eau-cracy." },
+        { q: "Definition: Spying.", opts: ["Espionage", "Espionnage", "Espianage"], ans: "Espionage", note: "One N." },
+        { q: "Definition: Communication facilitator.", opts: ["Liaison", "Liason", "Laision"], ans: "Liaison", note: "Two Is." },
+        { q: "Definition: Military observation.", opts: ["Reconnaissance", "Reconaisance", "Reconassance"], ans: "Reconnaissance", note: "Double N, Double S." },
+        { q: "Definition: A movement requiring skill.", opts: ["Maneuver", "Manuver", "Manuever"], ans: "Maneuver", note: "Man-eu-ver." },
+        { q: "Definition: A military rank.", opts: ["Lieutenant", "Leutenant", "Lieutennant"], ans: "Lieutenant", note: "Lieu-tenant." },
+        { q: "Definition: A military rank (sounds like Kernel).", opts: ["Colonel", "Colonal", "Cornel"], ans: "Colonel", note: "Col-o-nel." },
+        { q: "Definition: A special right.", opts: ["Privilege", "Privelege", "Priviledge"], ans: "Privilege", note: "No D." },
+        { q: "Definition: Information gathering.", opts: ["Intelligence", "Inteligence", "Intellegence"], ans: "Intelligence", note: "Double L." },
+        { q: "Definition: An incident.", opts: ["Occurrence", "Occurence", "Occurrance"], ans: "Occurrence", note: "Double C, Double R." },
+        { q: "Definition: A feeling of shame.", opts: ["Embarrassment", "Embarassment", "Embarrasment"], ans: "Embarrassment", note: "Double R, Double S." },
+        { q: "Definition: 1000 years.", opts: ["Millennium", "Millenium", "Milennium"], ans: "Millennium", note: "Double L, Double N." },
+        { q: "Definition: To provide lodging.", opts: ["Accommodate", "Accomodate", "Acommodate"], ans: "Accommodate", note: "Double C, Double M." },
+        { q: "Definition: Moral sense.", opts: ["Conscience", "Consciense", "Concience"], ans: "Conscience", note: "Science with Con." },
+        { q: "Definition: Pattern of sound.", opts: ["Rhythm", "Rythm", "Rhythym"], ans: "Rhythm", note: "R-H-Y-T-H-M." },
+        { q: "Definition: Upkeep.", opts: ["Maintenance", "Maintainance", "Maintenence"], ans: "Maintenance", note: "Ten-ance." },
+        { q: "Definition: A promise.", opts: ["Guarantee", "Garantee", "Guaranty"], ans: "Guarantee", note: "Guar-an-tee." },
+        { q: "Definition: Certain.", opts: ["Definite", "Definate", "Deffinite"], ans: "Definite", note: "Finite." },
+        { q: "Definition: From another country.", opts: ["Foreign", "Foriegn", "Foreing"], ans: "Foreign", note: "E before I (unlike 'receive')." },
+        { q: "Definition: The process of encoding.", opts: ["Encryption", "Encripsion", "Encrypsion"], ans: "Encryption", note: "Crypt-." },
+        { q: "Definition: A process or set of rules.", opts: ["Algorithm", "Algorythm", "Allgorithm"], ans: "Algorithm", note: "Al-go-rithm." },
+        { q: "Definition: The quality of being real.", opts: ["Authenticity", "Authenticety", "Authenticcity"], ans: "Authenticity", note: "Authentic-ity." },
+        { q: "Definition: A qualification.", opts: ["Credential", "Credencial", "Credantial"], ans: "Credential", note: "Cred-en-tial." },
+        { q: "Definition: Biological data.", opts: ["Biometric", "Biommetric", "Byometric"], ans: "Biometric", note: "Bio-metric." },
+        { q: "Definition: Weakness.", opts: ["Vulnerability", "Vulneribility", "Vulnrability"], ans: "Vulnerability", note: "Able-ity." },
+        { q: "Definition: Malicious software.", opts: ["Malware", "Malwear", "Mailware"], ans: "Malware", note: "Mal-ware." },
+        { q: "Definition: Network security system.", opts: ["Firewall", "Fire wall", "Firewal"], ans: "Firewall", note: "One word, double L." },
+        { q: "Definition: Location numbers.", opts: ["Coordinates", "Cordinates", "Coordinats"], ans: "Coordinates", note: "Co-ordinates." },
+        { q: "Definition: Rate of occurrence.", opts: ["Frequency", "Frequnecy", "Frequancy"], ans: "Frequency", note: "Ency." }
+      ],
+      spelling_check: [
+        { q: "Select the correct spelling:", opts: ["Necessary", "Neccessary", "Necesary"], ans: "Necessary", note: "One C, Two Ss." },
+        { q: "Select the correct spelling:", opts: ["Receive", "Recieve", "Receve"], ans: "Receive", note: "E before I after C." },
+        { q: "Select the correct spelling:", opts: ["Separate", "Seperate", "Seprate"], ans: "Separate", note: "A rat in sep-a-rate." },
+        { q: "Select the correct spelling:", opts: ["Questionnaire", "Questionaire", "Questionnare"], ans: "Questionnaire", note: "Double N." },
+        { q: "Select the correct spelling:", opts: ["Publicly", "Publically", "Publicaly"], ans: "Publicly", note: "No 'ally'." },
+        { q: "Select the correct spelling:", opts: ["Harass", "Harrass", "Haras"], ans: "Harass", note: "One R, Two Ss." },
+        { q: "Select the correct spelling:", opts: ["Calendar", "Calender", "Calander"], ans: "Calendar", note: "Ar at the end." },
+        { q: "Select the correct spelling:", opts: ["Tomorrow", "Tommorow", "Tommorrow"], ans: "Tomorrow", note: "One M, Two Rs." },
+        { q: "Select the correct spelling:", opts: ["Successful", "Succesful", "Sucessful"], ans: "Successful", note: "Double C, Double S." },
+        { q: "Select the correct spelling:", opts: ["Beginning", "Begining", "Begginning"], ans: "Beginning", note: "Double N." },
+        { q: "Select the correct spelling:", opts: ["Independent", "Independant", "Indipendent"], ans: "Independent", note: "All Es." },
+        { q: "Select the correct spelling:", opts: ["Category", "Catagory", "Catergory"], ans: "Category", note: "Cat-e-gory." },
+        { q: "Select the correct spelling:", opts: ["Embarrass", "Embarass", "Embaras"], ans: "Embarrass", note: "Double R, Double S." },
+        { q: "Select the correct spelling:", opts: ["Exaggerate", "Exagerate", "Exaggerrate"], ans: "Exaggerate", note: "Double G." },
+        { q: "Select the correct spelling:", opts: ["Aggressive", "Agressive", "Aggresive"], ans: "Aggressive", note: "Double G, Double S." },
+        { q: "Select the correct spelling:", opts: ["Possession", "Posession", "Possesion"], ans: "Possession", note: "Quadruple S." },
+        { q: "Select the correct spelling:", opts: ["Committee", "Commitee", "Comittee"], ans: "Committee", note: "Double M, Double T, Double E." },
+        { q: "Select the correct spelling:", opts: ["Pronunciation", "Pronounciation", "Pronounciation"], ans: "Pronunciation", note: "No 'noun' in pronunciation." },
+        { q: "Select the correct spelling:", opts: ["Weird", "Wierd", "Wired"], ans: "Weird", note: "Weird breaks the rule." },
+        { q: "Select the correct spelling:", opts: ["Vacuum", "Vaccum", "Vacum"], ans: "Vacuum", note: "One C, Two Us." },
+        { q: "Select the correct spelling:", opts: ["Achievement", "Achievment", "Acheivement"], ans: "Achievement", note: "I before E." },
+        { q: "Select the correct spelling:", opts: ["Acquire", "Aquire", "Acquir"], ans: "Acquire", note: "Ac-quire." },
+        { q: "Select the correct spelling:", opts: ["Address", "Adress", "Addres"], ans: "Address", note: "Double D, Double S." },
+        { q: "Select the correct spelling:", opts: ["Apparent", "Apparant", "Aparent"], ans: "Apparent", note: "Double P." },
+        { q: "Select the correct spelling:", opts: ["Argument", "Arguement", "Argumant"], ans: "Argument", note: "No E after U." },
+        { q: "Select the correct spelling:", opts: ["Believe", "Beleive", "Belive"], ans: "Believe", note: "I before E." },
+        { q: "Select the correct spelling:", opts: ["Colleague", "Collegue", "Coleague"], ans: "Colleague", note: "Double L, Ends in -gue." },
+        { q: "Select the correct spelling:", opts: ["Discipline", "Dicipline", "Descipline"], ans: "Discipline", note: "SC combination." },
+        { q: "Select the correct spelling:", opts: ["Environment", "Enviroment", "Envirornment"], ans: "Environment", note: "Iron environment." },
+        { q: "Select the correct spelling:", opts: ["Existence", "Existance", "Existense"], ans: "Existence", note: "Ends in -ence." },
+        { q: "Select the correct spelling:", opts: ["Experience", "Expeirence", "Experiance"], ans: "Experience", note: "Ends in -ence." },
+        { q: "Select the correct spelling:", opts: ["Forward", "Foward", "Foreward"], ans: "Forward", note: "For-ward." },
+        { q: "Select the correct spelling:", opts: ["Gauge", "Guage", "Gage"], ans: "Gauge", note: "G-A-U-G-E." },
+        { q: "Select the correct spelling:", opts: ["Government", "Goverment", "Govenment"], ans: "Government", note: "Govern-ment." },
+        { q: "Select the correct spelling:", opts: ["Knowledge", "Knowlege", "Knowladge"], ans: "Knowledge", note: "Know-ledge." },
+        { q: "Select the correct spelling:", opts: ["Leisure", "Liesure", "Lesure"], ans: "Leisure", note: "E before I." },
+        { q: "Select the correct spelling:", opts: ["License", "Liscense", "Licence"], ans: "License", note: "US English: License (Noun/Verb). UK Noun: Licence." },
+        { q: "Select the correct spelling:", opts: ["Occurred", "Ocurred", "Occured"], ans: "Occurred", note: "Double C, Double R." },
+        { q: "Select the correct spelling:", opts: ["Persevere", "Perservere", "Percervere"], ans: "Persevere", note: "Per-se-vere." },
+        { q: "Select the correct spelling:", opts: ["Recommend", "Recomend", "Reccommend"], ans: "Recommend", note: "Double M." }
+      ],
+      dictation: [
+        "The package has been delivered to the safehouse.",
+        "Meet the contact behind the library at midnight.",
+        "We need to encrypt the data before transmission.",
+        "The suspect was seen leaving the embassy.",
+        "Do not open the briefcase under any circumstances.",
+        "Our cover has been blown, abort the mission.",
+        "The target is moving towards the train station.",
+        "Intelligence suggests a mole is in the agency.",
+        "Please verify your identity with the fingerprint scanner.",
+        "The extraction team is five minutes away.",
+        "He denied all knowledge of the operation.",
+        "She is the most skilled agent we have.",
+        "Access to this file requires level five clearance.",
+        "Memorize the code and destroy the paper.",
+        "We have intercepted a coded message from the north.",
+        "The satellite uplink is currently offline.",
+        "Do not trust anyone with this information.",
+        "The rendezvous point has been compromised.",
+        "Agent Smith will provide you with the coordinates.",
+        "Ensure the microphone is hidden securely.",
+        "The hostile forces are approaching from the east.",
+        "We must extract the VIP before dawn.",
+        "The blue car contains the stolen documents.",
+        "Wait for the signal before advancing.",
+        "The encryption key is twelve digits long.",
+        "He was wearing a black trench coat and hat.",
+        "The meeting will take place in the park.",
+        "Destroy all evidence before leaving the room.",
+        "The alarm was disabled by the insider.",
+        "We are monitoring the phone lines 24/7.",
+        "The mission objectives have changed.",
+        "Proceed with caution, the area is guarded.",
+        "The helicopter will land on the roof.",
+        "Identify the target and report back immediately.",
+        "The password was changed yesterday morning.",
+        "We suspect a leak in the department.",
+        "The camera footage has been erased.",
+        "Do not engage the enemy unless fired upon.",
+        "The classified files are in the safe.",
+        "Return to base for debriefing."
+      ]
+    };
+
+    /* ================= GAME LOGIC ================= */
+    const state = {
+      completed: { grammar:0, spelling_def:0, spelling_check:0, dictation:0, vocab:0 },
+      currentModule: null,
+      currentIndex: 0,
+      voices: [],
+      agentName: "GUEST"
+    };
+
+    const game = {
+      init: () => {
+        // Shuffle Data
+        for (let key in db) {
+          db[key].sort(() => Math.random() - 0.5);
+        }
+
+        // Load voices
+        speechSynthesis.onvoiceschanged = () => {
+          state.voices = speechSynthesis.getVoices();
+        };
+      },
+
+      registerAgent: () => {
+        const name = document.getElementById('agentNameInput').value.trim().toUpperCase();
+        if(name) {
+          state.agentName = name;
+          document.getElementById('agentNameDisplay').innerText = name;
+          document.getElementById('welcomeName').innerText = name;
+          
+          document.getElementById('recruitScreen').classList.add('hidden');
+          document.getElementById('welcomeScreen').classList.remove('hidden');
+          game.log(`Agent ${name} registered.`);
+        }
+      },
+
+      log: (msg) => {
+        const console = document.getElementById('consoleLog');
+        const div = document.createElement('div');
+        div.innerText = `> ${msg}`;
+        console.prepend(div);
+      },
+
+      loadModule: (type) => {
+        if(state.completed[type] >= db[type].length) {
+          game.log(`${type.toUpperCase()} module fully completed.`);
+          return;
+        }
+
+        state.currentModule = type;
+        state.currentIndex = state.completed[type]; 
+        
+        document.getElementById('welcomeScreen').classList.add('hidden');
+        document.getElementById('missionContainer').classList.remove('hidden');
+        
+        const titleMap = { grammar: "TACTICAL OPS", spelling_def: "CRYPTOGRAPHY", spelling_check: "PROTOCOL", dictation: "AUDIO INTERCEPT", vocab: "COVER STORY" };
+        document.getElementById('missionTitle').innerText = titleMap[type];
+        document.getElementById('qTotal').innerText = db[type].length;
+        
+        game.renderQuestion();
+      },
+
+      renderQuestion: () => {
+        const container = document.getElementById('questionContent');
+        const type = state.currentModule;
+        const idx = state.currentIndex;
+        const data = db[type][idx];
+
+        document.getElementById('qCurrent').innerText = idx + 1;
+        document.getElementById('feedbackOverlay').classList.add('hidden');
+        
+        // Use optional chaining for safety if element doesn't exist
+        if(document.getElementById('hintBtn')) document.getElementById('hintBtn').classList.add('hidden'); 
+        if(document.getElementById('dictationErrorMsg')) document.getElementById('dictationErrorMsg').classList.add('hidden'); 
+        
+        container.innerHTML = '';
+
+        if (type === 'grammar' || type === 'vocab' || type === 'spelling_check' || type === 'spelling_def') {
+          // MCQ Layout
+          const questionText = data.q.includes('_____') ? data.q.replace('_____', '<span class="text-green-500 border-b-2 border-green-500">_____</span>') : data.q;
+          
+          let html = `<div class="text-2xl mb-8 font-mono leading-relaxed">${questionText}</div>
+                      <div class="grid grid-cols-1 gap-4">`;
+          
+          // Shuffle options
+          const opts = [...data.opts].sort(() => Math.random() - 0.5);
+          opts.forEach(opt => {
+            html += `<button onclick="game.checkAnswer('${opt.replace(/'/g, "\\'")}')" class="p-4 border border-green-800 hover:bg-green-900 hover:border-green-500 text-left font-mono text-lg transition-all rounded">${opt}</button>`;
+          });
+          html += `</div>`;
+          container.innerHTML = html;
+
+        } else if (type === 'dictation') {
+          // Audio Layout
+          container.innerHTML = `
+            <div class="text-center mb-8">
+              <div class="w-20 h-20 mx-auto border-2 border-green-500 rounded-full flex items-center justify-center mb-6 cursor-pointer hover:bg-green-900 transition-all" onclick="game.playAudio('${data.replace(/'/g, "\\'")}')">
+                <i class="fa-solid fa-play text-3xl"></i>
+              </div>
+              <div class="text-xs font-mono opacity-70 mb-4">CLICK ICON TO PLAY AUDIO</div>
+              <input type="text" id="dictationInput" class="w-full text-lg bg-transparent border-b-2 border-green-500 focus:outline-none py-2 font-mono" placeholder="Type exactly what you hear..." autocomplete="off">
+              
+              <div id="dictationErrorMsg" class="hidden text-red-500 font-bold mt-4 animate-pulse">TRANSCRIPTION ERROR. TRY AGAIN.</div>
+              
+              <button id="hintBtn" onclick="game.showHint()" class="hidden mt-4 text-xs border border-yellow-600 text-yellow-500 px-3 py-1 hover:bg-yellow-900/30">REQUEST INTEL (HINT)</button>
+
+            </div>
+            <button onclick="game.checkDictation()" class="w-full py-4 bg-green-800 hover:bg-green-700 text-white font-bold font-mono rounded">VERIFY INTERCEPT</button>
+          `;
+        }
+      },
+
+      playAudio: (text) => {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.9; 
+        const voice = state.voices.find(v => v.name.includes('Google UK English Male')) || state.voices[0];
+        if(voice) u.voice = voice;
+        speechSynthesis.speak(u);
+      },
+
+      checkAnswer: (ans) => {
+        const data = db[state.currentModule][state.currentIndex];
+        const isCorrect = ans === data.ans;
+        game.showFeedback(isCorrect, data.note || `Correct answer: ${data.ans}`);
+      },
+
+      checkDictation: () => {
+        const input = document.getElementById('dictationInput').value.trim();
+        const data = db[state.currentModule][state.currentIndex];
+        
+        const cleanInput = input.replace(/[.,!?;:]/g, "").toLowerCase().trim();
+        const cleanData = data.replace(/[.,!?;:]/g, "").toLowerCase().trim();
+        
+        const isCorrect = cleanInput === cleanData;
+
+        if (isCorrect) {
+           game.showFeedback(true, `Transcript verified.`);
+        } else {
+           // Show retry UI
+           document.getElementById('dictationErrorMsg').classList.remove('hidden');
+           document.getElementById('hintBtn').classList.remove('hidden');
+           game.log("Audio intercept failed. Retrying...");
+        }
+      },
+
+      showHint: () => {
+        const data = db[state.currentModule][state.currentIndex];
+        document.getElementById('hintText').innerText = data;
+        document.getElementById('dictationHintOverlay').classList.remove('hidden');
+        document.getElementById('hintBtn').classList.add('hidden');
+      },
+
+      closeHint: () => {
+        document.getElementById('dictationHintOverlay').classList.add('hidden');
+        // Clear input to enforce memory usage as per instructions
+        document.getElementById('dictationInput').value = "";
+        document.getElementById('dictationInput').focus();
+      },
+
+      showFeedback: (isCorrect, note) => {
+        const overlay = document.getElementById('feedbackOverlay');
+        const icon = document.getElementById('feedbackIcon');
+        const title = document.getElementById('feedbackText');
+        const noteDiv = document.getElementById('feedbackNote');
+        const retryBtn = document.getElementById('retryBtn');
+        const revealBtn = document.getElementById('revealBtn');
+        const continueBtn = document.getElementById('continueBtn');
+
+        overlay.classList.remove('hidden');
+        
+        if (isCorrect) {
+          icon.innerHTML = '<i class="fa-solid fa-lock-open text-green-500"></i>';
+          title.innerHTML = '<span class="text-green-500 glow-text">ACCESS GRANTED</span>';
+          noteDiv.innerText = note || "Clearance accepted.";
+          noteDiv.classList.remove('hidden');
+          
+          retryBtn.classList.add('hidden');
+          revealBtn.classList.add('hidden');
+          continueBtn.classList.remove('hidden');
+          
+          state.completed[state.currentModule]++;
+          game.updateProgressUI();
+          game.log(`${state.currentModule.toUpperCase()} Q${state.currentIndex+1} Cleared.`);
+        } else {
+          icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>';
+          title.innerHTML = '<span class="text-red-500 glow-red">ACCESS DENIED</span>';
+          
+          noteDiv.innerText = note;
+          noteDiv.classList.add('hidden'); // Hide answer initially
+          
+          retryBtn.classList.remove('hidden');
+          revealBtn.classList.remove('hidden');
+          continueBtn.classList.add('hidden'); 
+          
+          game.log(`Failed attempt on ${state.currentModule.toUpperCase()}.`);
+        }
+      },
+
+      retryQuestion: () => {
+        document.getElementById('feedbackOverlay').classList.add('hidden');
+      },
+
+      revealAnswer: () => {
+        document.getElementById('feedbackNote').classList.remove('hidden');
+        document.getElementById('retryBtn').classList.add('hidden'); // Hide retry once answer is known
+        document.getElementById('revealBtn').classList.add('hidden');
+        document.getElementById('continueBtn').classList.remove('hidden');
+        
+        // Mark as done so Continue moves forward
+        state.completed[state.currentModule]++;
+        game.updateProgressUI();
+      },
+
+      nextQuestion: () => {
+        const type = state.currentModule;
+        // Check if I incremented state.completed
+        if (state.completed[type] > state.currentIndex) {
+          // Success case
+          state.currentIndex++;
+          if (state.currentIndex >= db[type].length) {
+            // Module Finished
+            document.getElementById('welcomeScreen').classList.remove('hidden');
+            document.getElementById('missionContainer').classList.add('hidden');
+            game.log(`${type.toUpperCase()} MODULE 100% COMPLETE.`);
+            game.checkWin();
+          } else {
+            game.renderQuestion();
+          }
+        } else {
+          // Retry case (Incorrect answer flow)
+          document.getElementById('feedbackOverlay').classList.add('hidden');
+        }
+      },
+
+      updateProgressUI: () => {
+        document.getElementById('progGrammar').innerText = `${state.completed.grammar}/50`;
+        document.getElementById('progSpellingDef').innerText = `${state.completed.spelling_def}/30`;
+        document.getElementById('progSpellingCheck').innerText = `${state.completed.spelling_check}/40`;
+        document.getElementById('progDictation').innerText = `${state.completed.dictation}/40`;
+        document.getElementById('progVocab').innerText = `${state.completed.vocab}/40`;
+
+        const total = state.completed.grammar + state.completed.spelling_def + state.completed.spelling_check + state.completed.dictation + state.completed.vocab;
+        document.getElementById('progressCount').innerText = total;
+
+        const rankEl = document.getElementById('rankDisplay');
+        if (total > 30) rankEl.innerText = "AGENT";
+        if (total > 80) rankEl.innerText = "SPECIAL AGENT";
+        if (total > 130) rankEl.innerText = "HANDLER";
+        if (total >= 200) rankEl.innerText = "DOUBLE-0";
+      },
+
+      checkWin: () => {
+        const total = state.completed.grammar + state.completed.spelling_def + state.completed.spelling_check + state.completed.dictation + state.completed.vocab;
+        if (total >= 200) {
+          document.getElementById('winModal').classList.remove('hidden');
+        }
+      }
+    };
+
+    game.init();
+  </script>
+</body>
+</html>
